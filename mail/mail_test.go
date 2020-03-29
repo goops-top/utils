@@ -16,16 +16,15 @@ import (
 
 func TestPostMail(t *testing.T) {
 	maildata := &EmailMetaData{
-    Smtp: "smtp.qq.com",
-		From: "goops.top@qq.com",
-		Pass: "password",
-		To: []string{"goops.top@qq.com"},
-		Cc: []string{"weichuangxxb@qq.com"},
-		Subject: "test",
+		Smtp:        "smtp.qq.com",
+		From:        "goops.top@qq.com",
+		Pass:        "password",
+		To:          []string{"goops.top@qq.com"},
+		Cc:          []string{"weichuangxxb@qq.com"},
+		Subject:     "test",
 		ContentType: "text",
-		Content: []byte("hahahah"),
+		Content:     []byte("hahahah"),
 	}
 	emailErr := maildata.PostEmail()
 	fmt.Println(emailErr)
 }
-
