@@ -25,7 +25,7 @@ func NewConsumerApi(brokers []string) *Api {
 	// 指定队列长度
 	config.ChannelBufferSize = 2
 
-	consumerGroupApi, consumerGroupApiErr := sarama.New(brokers, consumerGroupName, config)
+	consumerGroupApi, consumerGroupApiErr := sarama.NewConsumerGroup(brokers, consumerGroupName, config)
 	if consumerGroupApiErr != nil {
 		fmt.Println("consumer group api connection failed")
 		panic(consumerGroupApiErr)

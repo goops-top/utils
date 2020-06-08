@@ -12,7 +12,6 @@ package kafka
 import (
 	"fmt"
 
-	"gokafka/api"
 
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +30,7 @@ func newConfig() *sarama.Config {
 	// kafka管理接口向后兼容，因此可以适当使用老接口进行管理，否则对于不同版本的集群可能造成兼容性问题
 	// 其实也可以将版本开放出去进行兼容
 
-	version, versionErr := sarama.ParseKafkaVersion("1.0.0")
+	// version, versionErr := sarama.ParseKafkaVersion("1.0.0")
 	version, versionErr := sarama.ParseKafkaVersion(kafkaVersion)
 	if versionErr != nil {
 		log.Fatalf("Error parsing Kafka version: %v", versionErr)
@@ -220,13 +219,20 @@ func (adminApi *AdminApi) DescribeCluster() ([]*sarama.Broker, int32, error) {
 	return adminApi.Admin.DescribeCluster()
 }
 
+
+type BrokerAddr struct {
+	BrokerId int32  `json:"brokerId"`
+	BrokerIp string `json:"brokerIp"`
+
+}
+
 // get broker id list
 // 返回controllerid
 // brokerid 列表
 // brokerid和broker地址对应关系
 // 注意:如果结构体指针方法中使用var定义了变量之后，在函数返回中就不需要写名称了(返回数据中的名称其实就是相当于var name type).
 // 如下方法可以将返回中的名称去掉，把方法中的var注释去掉也可以
-func (adminApi *AdminApi) GetBrokerIdList() (controllerId int32, brokerIds []int32, brokerInfo []api.BrokerAddr) {
+func (adminApi *AdminApi) GetBrokerIdList() (controllerId int32, brokerIds []int32, brokerInfo []BrokerAddr) {
 	brokers, controllerId, clusterErr := adminApi.DescribeCluster()
 	if clusterErr != nil {
 		fmt.Printf("failed to get the kafka cluster broker id list with err:%v\n", clusterErr)
@@ -235,7 +241,7 @@ func (adminApi *AdminApi) GetBrokerIdList() (controllerId int32, brokerIds []int
 	//var brokerInfo []api.BrokerAddr
 	//var brokerIds []int32
 	for _, broker := range brokers {
-		brokerinfo := &api.BrokerAddr{
+		brokerinfo := &BrokerAddr{
 			BrokerId: broker.ID(),
 			BrokerIp: broker.Addr(),
 		}
