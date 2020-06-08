@@ -25,13 +25,14 @@ type AdminApi struct {
 // init the sdk client config
 func newConfig() *sarama.Config {
 	config := sarama.NewConfig()
-	config.ClientID = Clientid
+	config.ClientID = clientId
 	config.ChannelBufferSize = 256
 	//config.Version = sarama.V2_5_0_0
 	// kafka管理接口向后兼容，因此可以适当使用老接口进行管理，否则对于不同版本的集群可能造成兼容性问题
 	// 其实也可以将版本开放出去进行兼容
 
 	version, versionErr := sarama.ParseKafkaVersion("1.0.0")
+	version, versionErr := sarama.ParseKafkaVersion(kafkaVersion)
 	if versionErr != nil {
 		log.Fatalf("Error parsing Kafka version: %v", versionErr)
 	}
