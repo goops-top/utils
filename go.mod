@@ -1,4 +1,4 @@
-module utils
+module github.com/goops-top/utils
 
 go 1.14
 
