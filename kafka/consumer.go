@@ -42,7 +42,6 @@ func NewConsumerApi(brokers []string, groupName, consumerOffset string) *Api {
 	// 指定队列长度
 	config.ChannelBufferSize = 2
 
-	fmt.Println(offset, consumerGroup, config)
 
 	consumerGroupApi, consumerGroupApiErr := sarama.NewConsumerGroup(brokers, consumerGroup, config)
 	if consumerGroupApiErr != nil {
