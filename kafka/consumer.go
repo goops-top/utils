@@ -75,7 +75,7 @@ func (c *Api) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Con
 		offset := message.Offset
 		msg := string(message.Value)
 
-		log.Infof("part:%v offset:%v \nmsg: %s", part, offset, msg)
+        log.Infof("part:%v offset:%v \ndate:%v msg: %s", part, offset, time.Now().Format("2006-01-02T15:04:05"),msg)
 		time.Sleep(time.Second)
 
 		session.MarkMessage(message, "")
