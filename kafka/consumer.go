@@ -15,17 +15,36 @@ type Api struct {
 }
 
 // init a consumer api
-func NewConsumerApi(brokers []string) *Api {
+func NewConsumerApi(brokers []string, groupName, consumerOffset string) *Api {
+	var consumerGroup string
+	if len(groupName) == 0 {
+		consumerGroup = consumerGroupName
+	} else {
+		consumerGroup = groupName
+	}
+
+	var offset int64
+	switch consumerOffset {
+	case "earliest":
+		offset = sarama.OffsetOldest
+	case "latest":
+		offset = sarama.OffsetNewest
+	default:
+		offset = sarama.OffsetNewest
+	}
+
 	config := newConfig()
 	// 指定消费者组的消费策略
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRange
 	// 指定消费组读取消息的offset[OffsetNewest,OffsetOldest]
 	// config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	config.Consumer.Offsets.Initial = sarama.OffsetOldest
+	config.Consumer.Offsets.Initial = offset
 	// 指定队列长度
 	config.ChannelBufferSize = 2
 
-	consumerGroupApi, consumerGroupApiErr := sarama.NewConsumerGroup(brokers, consumerGroupName, config)
+	fmt.Println(offset, consumerGroup, config)
+
+	consumerGroupApi, consumerGroupApiErr := sarama.NewConsumerGroup(brokers, consumerGroup, config)
 	if consumerGroupApiErr != nil {
 		fmt.Println("consumer group api connection failed")
 		panic(consumerGroupApiErr)

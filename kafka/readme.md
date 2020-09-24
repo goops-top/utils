@@ -89,5 +89,7 @@ ConsumerGroup 接口实现的几个主要功能:
 **封装已实现接口**
 
 - [X] 消费者组消费，采用`gokafka`消费组
+- [X] 指定消费者组
+- [X] 指定消费位置`earliest` 和 `latest(default)`
 
 

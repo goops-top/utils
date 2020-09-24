@@ -10,7 +10,7 @@
 package kafka
 
 const (
-	clientId = "GoOps-kafka"
+	clientId          = "GoOps-kafka"
 	consumerGroupName = "GoKafka"
-	kafkaVersion = "1.0.0"
+	kafkaVersion      = "1.0.0"
 )

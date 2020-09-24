@@ -11,7 +11,7 @@ import (
 
 func TestConsumerMsg(t *testing.T) {
 
-	consumerApi := NewConsumerApi([]string{"172.29.203.62:9092"})
+	consumerApi := NewConsumerApi([]string{"172.29.203.62:9092"}, "BGBiao", "earliest")
 
 	defer consumerApi.Close()
 

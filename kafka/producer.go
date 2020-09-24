@@ -1,7 +1,6 @@
 package kafka
 
 import (
-
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
 )

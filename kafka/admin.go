@@ -12,7 +12,6 @@ package kafka
 import (
 	"fmt"
 
-
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
 )
@@ -219,11 +218,9 @@ func (adminApi *AdminApi) DescribeCluster() ([]*sarama.Broker, int32, error) {
 	return adminApi.Admin.DescribeCluster()
 }
 
-
 type BrokerAddr struct {
 	BrokerId int32  `json:"brokerId"`
 	BrokerIp string `json:"brokerIp"`
-
 }
 
 // get broker id list
