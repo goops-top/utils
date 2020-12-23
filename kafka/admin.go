@@ -11,8 +11,10 @@ package kafka
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/Shopify/sarama"
+	xerror "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -69,6 +71,12 @@ type TopicDetail struct {
 }
 */
 
+// check the topic is exist.
+// sarama.ErrTopicAlreadyExists
+func (adminApi *AdminApi) TopicIsExist(name string) bool {
+	return true
+}
+
 // Create a topic with default (partition:3,replicationFactor:3)
 func (adminApi *AdminApi) CreateTopic(name string) (bool, error) {
 	var topicDetail sarama.TopicDetail
@@ -87,15 +95,94 @@ func (adminApi *AdminApi) CreateCustomTopic(name string, partNum int32, replicaF
 	var topicDetail sarama.TopicDetail
 	topicDetail.NumPartitions = partNum
 	topicDetail.ReplicationFactor = replicaFactor
-	for key, value := range config {
-		topicDetail.ConfigEntries = map[string]*string{key: &value}
+
+	// must be init the var and memory space.
+	var topicConfig map[string]*string
+	topicConfig = make(map[string]*string)
+
+	iter := reflect.ValueOf(config).MapRange()
+	for iter.Next() {
+		k := iter.Key().String()
+		v := iter.Value().String()
+		topicConfig[k] = &v
 	}
+	/*
+		for key, value := range config {
+			// value is overwride
+			topicConfig[key] = &value
+			fmt.Println(key, value)
+			fmt.Println(topicConfig)
+			// topicDetail.ConfigEntries = map[string]*string{key: &value}
+		}
+	*/
+	topicDetail.ConfigEntries = topicConfig
 	err := adminApi.Admin.CreateTopic(name, &topicDetail, false)
 	if err != nil {
-		return false, err
+		return false, xerror.Wrapf(err, "create the topic with:%v failed", topicDetail)
 	}
 	return true, err
 
+}
+
+// Create a custom topic  configs , replicasAssignments
+// notic: the topic partitions,replications and replicasAssignments cannot be used at the same time.
+func (adminApi *AdminApi) CreateCustomTopicWithReplicaAssign(name string, config map[string]string, replicasAssign map[int32][]int32) (bool, error) {
+
+	// var can set the sarama.TopicDetail.NumPartitions and ReplicationFactor
+	// var topicDetail sarama.TopicDetail
+
+	// must be init the var and memory space.
+	var topicConfig map[string]*string
+	topicConfig = make(map[string]*string)
+
+	iter := reflect.ValueOf(config).MapRange()
+	for iter.Next() {
+		k := iter.Key().String()
+		v := iter.Value().String()
+		topicConfig[k] = &v
+	}
+
+	// topicDetail.ConfigEntries = topicConfig
+	// topicDetail.ReplicaAssignment = replicasAssign
+	// 使用指定分区分配时，不能指定分区数和副本数，默认值是0，设置成-1也不行
+	topicDetail := sarama.TopicDetail{
+		// NumPartitions:     -1,
+		// ReplicationFactor: -1,
+		ReplicaAssignment: replicasAssign,
+		ConfigEntries:     topicConfig,
+	}
+	fmt.Println(topicDetail)
+	err := adminApi.Admin.CreateTopic(name, &topicDetail, false)
+	if err != nil {
+		return false, xerror.Wrapf(err, "create the topic with:%v failed", topicDetail)
+	}
+	return true, err
+
+}
+
+// alter config
+// AlterConfig(resourceType ConfigResourceType, name string, entries map[string]*string, validateOnly bool) error
+/*
+https://pkg.go.dev/github.com/Shopify/sarama#ConfigResourceType
+type ConfigResourceType int8
+*/
+func (adminApi *AdminApi) UpdateTopicConfig(name string, config map[string]string, validateOnly bool) (bool, error) {
+	// check the topic is exists
+	var topicConfig map[string]*string
+	topicConfig = make(map[string]*string)
+
+	iter := reflect.ValueOf(config).MapRange()
+	for iter.Next() {
+		k := iter.Key().String()
+		v := iter.Value().String()
+		topicConfig[k] = &v
+	}
+
+	err := adminApi.Admin.AlterConfig(sarama.TopicResource, name, topicConfig, validateOnly)
+	if err != nil {
+		return false, xerror.Wrap(err, "update the topic config failed:")
+	}
+	return true, nil
 }
 
 // Delete a topic

@@ -96,15 +96,40 @@ func TestCreateTopic(t *testing.T) {
 func TestCreateCustomTopic(t *testing.T) {
 	admin := NewClusterAdmin([]string{"172.29.203.62:9092"})
 	defer admin.Close()
-	isok, err := admin.CreateCustomTopic("gokafka-test-new", 10, 3, map[string]string{"unclean.leader.election.enable": "true"})
+	isok, err := admin.CreateCustomTopic("gokafka-test-new", 10, 1, map[string]string{"unclean.leader.election.enable": "true", "retention.ms": "172800000"})
 	fmt.Println(isok, err)
+}
+
+// create topic with the replicaAssign
+// when you specified replicaAssignment ,the partitionNum and replications will be failed.
+func TestCreateCustomTopicWithReplicaAssign(t *testing.T) {
+	admin := NewClusterAdmin([]string{"172.29.203.62:9092"})
+	defer admin.Close()
+	isok, err := admin.CreateCustomTopicWithReplicaAssign("gokafka-test-new",
+		map[string]string{"unclean.leader.election.enable": "true", "retention.ms": "172800000"},
+		map[int32][]int32{
+			0: []int32{1, 2},
+			1: []int32{2, 3},
+			3: []int32{3, 1},
+		})
+	fmt.Printf("%v %+v\n", isok, err)
+}
+
+// update toipic with specifiy config
+func TestUpdateTopicConfig(t *testing.T) {
+	admin := NewClusterAdmin([]string{"172.29.203.62:9092"})
+	defer admin.Close()
+
+	isok, err := admin.UpdateTopicConfig("--msg", map[string]string{"retention.mx": "888"}, false)
+
+	fmt.Printf("%v %+v\n", isok, err)
 }
 
 // delete a topic
 func TestDeleteTopic(t *testing.T) {
 	admin := NewClusterAdmin([]string{"172.29.203.62:9092"})
 	defer admin.Close()
-	for _, v := range []string{"gokafka-test", "gokafka-test-new"} {
+	for _, v := range []string{"gokafka-test", "gokafka-test-new", "--msg"} {
 		isok, err := admin.DeleteTopic(v)
 		fmt.Println(isok, err)
 	}
