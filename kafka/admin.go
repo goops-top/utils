@@ -185,6 +185,22 @@ func (adminApi *AdminApi) UpdateTopicConfig(name string, config map[string]strin
 	return true, nil
 }
 
+// add the partitions for a topic
+func (adminApi *AdminApi) AddPartitions(topic string, count int32, assignment [][]int32, validateOnly bool) (bool, error) {
+	if err := adminApi.Admin.CreatePartitions(topic, count, assignment, validateOnly); err != nil {
+		return false, xerror.Wrap(err, "add the topic partitions failed:")
+	}
+	return true, nil
+}
+
+// alter the partitions assignment for a topic
+func (adminApi *AdminApi) AlterPartitionsReassignments(topic string, assignment [][]int32) (bool, error) {
+	if err := adminApi.Admin.AlterPartitionReassignments(topic, assignment); err != nil {
+		return false, xerror.Wrap(err, "alter the topic partitions assignment failed:")
+	}
+	return true, nil
+}
+
 // Delete a topic
 func (adminApi *AdminApi) DeleteTopic(name string) (bool, error) {
 	err := adminApi.Admin.DeleteTopic(name)

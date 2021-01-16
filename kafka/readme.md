@@ -93,3 +93,13 @@ ConsumerGroup 接口实现的几个主要功能:
 - [X] 指定消费位置`earliest` 和 `latest(default)`
 
 
+**注意事项**
+
+在`sarama`库中，默认创建topic的方法(`CreateTopic(topic,detail,validate)`)中是无法指定分区的规划的，也就是无法怼topic的分区进行静态分配，因此，无法做到怼集群进行虚拟集群的管理。但是可以尝试采取先创建topic，然后使用虚拟组进行topic的重排，进而实现整个topic的按照指定broker进行分配。
+
+```
+AlterPartitionReassignments(topic string, assignment [][]int32) error
+ListPartitionReassignments(topics string, partitions []int32) (topicStatus map[string]map[int32]*PartitionReplicaReassignmentsStatus, err error)
+
+
+```

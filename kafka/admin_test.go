@@ -129,7 +129,7 @@ func TestUpdateTopicConfig(t *testing.T) {
 func TestDeleteTopic(t *testing.T) {
 	admin := NewClusterAdmin([]string{"172.29.203.62:9092"})
 	defer admin.Close()
-	for _, v := range []string{"gokafka-test", "gokafka-test-new", "--msg"} {
+	for _, v := range []string{"xxb-test-123", "gokafka-test-new", "xxb-test-48"} {
 		isok, err := admin.DeleteTopic(v)
 		fmt.Println(isok, err)
 	}
