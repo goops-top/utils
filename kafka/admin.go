@@ -27,7 +27,7 @@ func newConfig() *sarama.Config {
 	config := sarama.NewConfig()
 	config.ClientID = clientId
 	config.ChannelBufferSize = 256
-	//config.Version = sarama.V2_5_0_0
+	config.Version = sarama.V2_5_0_0
 	// kafka管理接口向后兼容，因此可以适当使用老接口进行管理，否则对于不同版本的集群可能造成兼容性问题
 	// 其实也可以将版本开放出去进行兼容
 
@@ -194,6 +194,8 @@ func (adminApi *AdminApi) AddPartitions(topic string, count int32, assignment []
 }
 
 // alter the partitions assignment for a topic
+// notice: AlterPartitionReassignmentsRequest contain a version with {TimeoutMs int32,Version int16(0)} ,maybe occur follow message:
+// kafka server: The version of API is not supported.
 func (adminApi *AdminApi) AlterPartitionsReassignments(topic string, assignment [][]int32) (bool, error) {
 	if err := adminApi.Admin.AlterPartitionReassignments(topic, assignment); err != nil {
 		return false, xerror.Wrap(err, "alter the topic partitions assignment failed:")

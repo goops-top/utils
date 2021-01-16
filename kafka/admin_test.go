@@ -239,3 +239,55 @@ func TestListConsumerGroupOffSets(t *testing.T) {
 	offset, _ := admin.ListConsumerGroupOffSet("active_action_user_groupid", "baseeventlog")
 	fmt.Println(offset)
 }
+
+
+// 给topic增加partition
+func TestAddPartitions(t *testing.T) {
+	//建立链接的时候超时时间比较长120s
+	admin := NewClusterAdmin([]string{"192.168.0.90:9092"})
+	defer admin.Close()
+
+	// resagment 为空时，会进行自动分配分区
+	/*
+	var part0 []int32 = []int32{1,2}
+	var part1 []int32 = []int32{2,3}
+	var part2 []int32 = []int32{3,1}
+	var part3 []int32 = []int32{3,2}
+	var part4 []int32 = []int32{2,1}
+	var part5 []int32 = []int32{1,3}
+	*/
+	var part6 []int32 = []int32{1,3}
+	var resagnment [][]int32
+	resagnment  = append(resagnment,part6)
+	fmt.Println(resagnment)
+	var count int32 = 7
+	// 注意: count不能小于当前的分区数量
+	// 这里resagment 指的是增加的分区的副本分配是需要count-currentPartitions
+	isOk,err := admin.AddPartitions("bgbiao-test",count,resagnment,false)
+	fmt.Println(isOk,err)
+}
+
+
+// 修改partition的分配
+func TestAlterPartitions(t *testing.T) {
+	admin := NewClusterAdmin([]string{"192.168.0.90:9092"})
+        defer admin.Close()
+
+        var part0 []int32 = []int32{1,2}
+        var part1 []int32 = []int32{2,3}
+        var part2 []int32 = []int32{3,1}
+        var part3 []int32 = []int32{3,2}
+        var part4 []int32 = []int32{2,1}
+        var part5 []int32 = []int32{1,3}
+	
+	var resagnment [][]int32 
+	// 给分区0-5 进行重分配
+	// 分区6的副本没有改变，还是之前的1,3
+	resagnment = append(resagnment,part0,part1,part2,part3,part4,part5)
+
+	// 版本不支持？
+	isOk,err := admin.AlterPartitionsReassignments("bgbiao-test",resagnment)
+
+	fmt.Println(isOk,err)
+
+}
