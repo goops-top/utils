@@ -42,7 +42,6 @@ func NewConsumerApi(brokers []string, groupName, consumerOffset string) *Api {
 	// 指定队列长度
 	config.ChannelBufferSize = 2
 
-
 	consumerGroupApi, consumerGroupApiErr := sarama.NewConsumerGroup(brokers, consumerGroup, config)
 	if consumerGroupApiErr != nil {
 		fmt.Println("consumer group api connection failed")
@@ -74,7 +73,7 @@ func (c *Api) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Con
 		offset := message.Offset
 		msg := string(message.Value)
 
-        log.Infof("part:%v offset:%v \ndate:%v msg: %s", part, offset, time.Now().Format("2006-01-02T15:04:05"),msg)
+		log.Infof("part:%v offset:%v \ndate:%v msg: %s", part, offset, time.Now().Format("2006-01-02T15:04:05"), msg)
 		time.Sleep(time.Second)
 
 		session.MarkMessage(message, "")
@@ -83,6 +82,7 @@ func (c *Api) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Con
 }
 
 // consumer topic some info
+// notice: can'not aware the partitions increase.
 func (c *Api) ConsumerMsgFromTopics(topics []string) func() {
 	// ctx := context.Background()
 	ctx, cancel := context.WithCancel(context.Background())
