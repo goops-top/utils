@@ -118,7 +118,7 @@ func TestCreateCustomTopicWithReplicaAssign(t *testing.T) {
 // update toipic with specifiy config
 // notice: 必须设置成全部的参数，否则每次会进行覆盖
 func TestUpdateTopicConfig(t *testing.T) {
-	admin := NewClusterAdmin([]string{"stream-kafka-1.soulapp.cn:9092"})
+	admin := NewClusterAdmin([]string{"stream-kafka-1.bgbiao.top:9092"})
 	defer admin.Close()
 
 	isok, err := admin.UpdateTopicConfig("recommend_join_stream_log_new_tf_expt", map[string]string{"retention.ms": "43200000", "unclean.leader.election.enable": "true"}, false)
@@ -245,7 +245,7 @@ func TestListConsumerGroupOffSets(t *testing.T) {
 // notice: when the topic need increase the partitions ,the origin partition must have the same number of replicas
 func TestAddPartitions(t *testing.T) {
 	//建立链接的时候超时时间比较长120s
-	admin := NewClusterAdmin([]string{"log-kafka-1.bgbiao.top:9092"})
+	admin := NewClusterAdmin([]string{"test-kafka-1.bgbiao.top:9092"})
 	defer admin.Close()
 
 	// resagment 为空时，会进行自动分配分区
@@ -256,10 +256,10 @@ func TestAddPartitions(t *testing.T) {
 		resagnment  = append(resagnment,part6)
 	*/
 	fmt.Println(resagnment)
-	var count int32 = 64
+	var count int32 = 16
 	// 注意: count不能小于当前的分区数量
 	// 这里resagment 指的是增加的分区的副本分配是需要count-currentPartitions
-	isOk, err := admin.AddPartitions("soulwinterfelllog", count, resagnment, false)
+	isOk, err := admin.AddPartitions("postrecommendlog", count, resagnment, false)
 	fmt.Println(isOk, err)
 }
 
