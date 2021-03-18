@@ -28,6 +28,25 @@ func NewProducerApi(brokers []string) *ProducerApi {
 
 }
 
+// init a producer client with the saslplaintext
+func NewProducerApiWithSASLPlainText(brokers []string, username, password string) *ProducerApi {
+	config := newConfigWithSASLPlainText(username, password)
+	// 指定生产者参数: acks = all
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	// 指定分区器: Random
+	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	config.Producer.Return.Successes = true
+
+	client, clientErr := sarama.NewSyncProducer(brokers, config)
+	if clientErr != nil {
+		log.Infof("生产者链接失败:%v\n", clientErr)
+		panic(clientErr)
+	}
+
+	return &ProducerApi{ProducerSyncApi: client}
+
+}
+
 //
 func (p *ProducerApi) Close() {
 	p.ProducerSyncApi.Close()

@@ -72,7 +72,7 @@ func TestDescribeTopics(t *testing.T) {
 // return : []Broker,controllerId,error
 // https://pkg.go.dev/github.com/Shopify/sarama?tab=doc#Broker
 func TestDescribeCluster(t *testing.T) {
-	admin := NewClusterAdmin([]string{"172.29.203.62:9092"})
+	admin := NewClusterAdmin([]string{"172.29.202.56:9092"})
 	brokers, controllerId, clusterErr := admin.DescribeCluster()
 	if clusterErr != nil {
 		fmt.Printf("err:%v\n", clusterErr)
@@ -82,6 +82,18 @@ func TestDescribeCluster(t *testing.T) {
 		fmt.Printf("broker:%v,broker_id:%v\n", broker.Addr(), broker.ID())
 	}
 
+}
+
+func TestDecsribeClusterWithSASLPlain(t *testing.T) {
+	admin := NewClusterAdminWithSASLPlainText([]string{"172.29.202.56:9092"}, "username", "password")
+	brokers, controllerId, clusterErr := admin.DescribeCluster()
+	if clusterErr != nil {
+		fmt.Printf("err:%v\n", clusterErr)
+	}
+	fmt.Println("current controllerd id:", controllerId)
+	for _, broker := range brokers {
+		fmt.Printf("broker:%v,broker_id:%v\n", broker.Addr(), broker.ID())
+	}
 }
 
 // create topic with default config.

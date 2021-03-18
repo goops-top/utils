@@ -10,11 +10,12 @@ import (
 
 func TestProducerMsg(t *testing.T) {
 
-	producerApi := NewProducerApi([]string{"172.29.203.62:9092"})
+	// producerApi := NewProducerApi([]string{"172.29.203.62:9092"})
+	producerApi := NewProducerApiWithSASLPlainText([]string{"172.29.202.56:9092"}, "username", "password")
 
 	defer producerApi.Close()
 
-	c := producerApi.PutFromString("test-push", "test a message")
+	c := producerApi.PutFromString("test-sasl", "test a message")
 
 	fmt.Println(c)
 }

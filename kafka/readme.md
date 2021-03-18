@@ -4,6 +4,13 @@
 
 在kafka中，主要分为三种客户端，分别是: `生产者客户端`，`消费者客户端`，`集群管理客户端`
 
+### kafka 认证相关
+
+`注意:` 在使用`sarama`库连接 kafka 时，官方仅支持如下三种方式的认证，因此在使用的时候需要特别注意。
+- 无认证: 也就是直连 broker 即可对集群进行管理，以及对 topic 进行读写操作
+- TLS认证: 基于SSL/TLS证书的认证，通过证书身份识别来真正识别每一个用户和操作相关的信息
+- SASL/PLAIN认证: 官方 kafka 其实在 SASL 支持多种方式，比如SASL/SCRAM, SASL/GSSAPI等，但是 sarama 库中仅实现了 PLAINTEXT 一种认证方式。[具体查看Config结构体中的SASL的定义说明](https://pkg.go.dev/github.com/Shopify/sarama#Config) 
+
 ### 集群管理客户端
 
 集群管理客户端对外通过`ClusterAdmin`接口暴露，主要包含如下常见的方法实现:

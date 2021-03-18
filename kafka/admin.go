@@ -44,13 +44,63 @@ func newConfig() *sarama.Config {
 	return config
 }
 
+// init the sdk client config with SASL/PLAINTEXT
+func newConfigWithSASLPlainText(username, password string) *sarama.Config {
+	config := sarama.NewConfig()
+	config.ClientID = clientId
+	config.ChannelBufferSize = 256
+	// user the sasl/plaintext to Authentication
+	config.Net.SASL.Enable = true
+	// config.Net.SASL.AuthIdentity = "SASL/PLAIN"
+	// Possible values: OAUTHBEARER, PLAIN (defaults to PLAIN)
+	// config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+	// config.Net.SASL.Handshake = false
+	config.Net.SASL.User = username
+	config.Net.SASL.Password = password
+
+	config.Version = sarama.V2_7_0_0
+	// kafka管理接口向后兼容，因此可以适当使用老接口进行管理，否则对于不同版本的集群可能造成兼容性问题
+	// 其实也可以将版本开放出去进行兼容
+
+	// version, versionErr := sarama.ParseKafkaVersion("1.0.0")
+	version, versionErr := sarama.ParseKafkaVersion(kafkaVersion)
+	if versionErr != nil {
+		log.Fatalf("Error parsing Kafka version: %v", versionErr)
+	}
+	config.Version = version
+
+	if confErr := config.Validate(); confErr != nil {
+		fmt.Println("kafka config 解析错误，check please.")
+	}
+	return config
+}
+
 // init a clusteradmin api
 func NewClusterAdmin(brokerList []string) *AdminApi {
+	// no auth
 	config := newConfig()
+	// sasl/plaintext auth
+	// config := newConfigWithSASLPlainText("username", "password")
 	// https://pkg.go.dev/github.com/Shopify/sarama?tab=doc#ClusterAdmin
 	admin, adminErr := sarama.NewClusterAdmin(brokerList, config)
 	if adminErr != nil {
 		fmt.Printf("%v\n", adminErr)
+		panic("kafka connection failed ")
+	}
+
+	return &AdminApi{Admin: admin}
+}
+
+// init a clusteradmin api with the SASL/PLAINTEXT
+
+func NewClusterAdminWithSASLPlainText(brokerList []string, username, password string) *AdminApi {
+	config := newConfigWithSASLPlainText(username, password)
+
+	// https://pkg.go.dev/github.com/Shopify/sarama?tab=doc#ClusterAdmin
+	admin, adminErr := sarama.NewClusterAdmin(brokerList, config)
+	fmt.Println(admin, adminErr)
+	if adminErr != nil {
+		fmt.Printf("创建kafka admin client失败:%v\n", adminErr)
 		panic("kafka connection failed ")
 	}
 
