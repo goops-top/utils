@@ -4,14 +4,14 @@
 
 在kafka中，主要分为三种客户端，分别是: `生产者客户端`，`消费者客户端`，`集群管理客户端`
 
-### kafka 认证相关
+### kafka client Authentication
 
 `注意:` 在使用`sarama`库连接 kafka 时，官方仅支持如下三种方式的认证，因此在使用的时候需要特别注意。
 - 无认证: 也就是直连 broker 即可对集群进行管理，以及对 topic 进行读写操作
 - TLS认证: 基于SSL/TLS证书的认证，通过证书身份识别来真正识别每一个用户和操作相关的信息
 - SASL/PLAIN认证: 官方 kafka 其实在 SASL 支持多种方式，比如SASL/SCRAM, SASL/GSSAPI等，但是 sarama 库中仅实现了 PLAINTEXT 一种认证方式。[具体查看Config结构体中的SASL的定义说明](https://pkg.go.dev/github.com/Shopify/sarama#Config) 
 
-### 集群管理客户端
+### cluster admin api
 
 集群管理客户端对外通过`ClusterAdmin`接口暴露，主要包含如下常见的方法实现:
 
@@ -34,7 +34,7 @@
 - `DeleteConsumerGroup`: 删除消费组
 - `DescribeCluster`: 查看集群详情信息(broker节点，controller节点等信息)
 - `DescribeLogDirs`: 查看topic的各个日志信息(获取指定broker列表里日志目录信息)
-- `Close`: 关闭管理员，并关闭基础客户端
+- `Close`: 关闭admin api，并关闭基础客户端
 
 `注意:` 因为通常可能企业内部使用的集群版本各不相同，因此对于有兼容版本的问题，高版本api接口未进行封装
 
@@ -51,7 +51,7 @@
 - [X] 修改指定资源实体的配置文件
 
 
-### 生产者客户端
+### producer client api
 
 在[sarama](github.com/Shopify/sarama) 中，对于生产者相关的接口来讲，仅提供了异步的接口，即`AsyncProducer`接口。
 
@@ -70,7 +70,7 @@ AsyncProducer接口主要实现了以下几个功能:
 
 
 
-### 消费者客户端
+### consumer client api 
 
 `注意:` 其实对于消费者而言，通常会分为两种消费方式，一种是消费者直接消费，另外一种是使用消费者组来消费一个指定topic的数据，后者不会影响整个topic的数据一致性，相当于一种订阅模式。
 
