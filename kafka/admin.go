@@ -98,7 +98,6 @@ func NewClusterAdminWithSASLPlainText(brokerList []string, username, password st
 
 	// https://pkg.go.dev/github.com/Shopify/sarama?tab=doc#ClusterAdmin
 	admin, adminErr := sarama.NewClusterAdmin(brokerList, config)
-	fmt.Println(admin, adminErr)
 	if adminErr != nil {
 		fmt.Printf("创建kafka admin client失败:%v\n", adminErr)
 		panic("kafka connection failed ")
