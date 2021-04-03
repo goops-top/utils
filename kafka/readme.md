@@ -49,6 +49,14 @@
 - [X] 查看topic的消费组信息(指定group的topic的消费者情况)
 - [X] 查看指定实体的配置文件(broker,topic)
 - [X] 修改指定资源实体的配置文件
+- [X] 增加kafka集群的版本指定
+- [X] 获取单点问题的topic分区
+- [X] 增加topic级别的副本重分配
+- [ ] 多topic的指定分区副本分配，分配限流
+- [ ] 获取瞬时间的broker优先节点
+- - cpu指标,mem指标,in/out流量,磁盘坏块
+- - topic数量,partition数量,leader数量
+
 
 
 ### producer client api

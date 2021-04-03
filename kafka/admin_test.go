@@ -30,7 +30,7 @@ type PartitionMetadata struct {
 }
 
 func TestListTopic(t *testing.T) {
-	admin := NewClusterAdmin([]string{"172.29.203.62:9092", "172.29.203.106:9092", "172.29.203.86:9092"})
+	admin := NewClusterAdmin([]string{"10.50.15.71:9092"})
 	defer admin.Close()
 	// 原始的topic的map结构,应该比较好获取topic名称
 	topics, _ := admin.ListTopic()
@@ -38,7 +38,7 @@ func TestListTopic(t *testing.T) {
 		fmt.Println(topic, tInfo)
 	}
 	// 获取指定topic列表并解析到slice中
-	topicsInfos, err := admin.ListTopicsInfo([]string{"data-metadata", "myapp-yum-log"})
+	topicsInfos, err := admin.ListTopicsInfo([]string{"im-user-login-qa1"})
 	fmt.Println(err)
 	for _, t := range topicsInfos {
 		fmt.Println(t.Name, t.PartitionNum, t.Replication, t.ReplicaAssignment, t.ConfigEntries)
@@ -50,8 +50,8 @@ func TestListTopic(t *testing.T) {
 }
 
 func TestDescribeTopics(t *testing.T) {
-	// admin := NewClusterAdmin([]string{"172.29.203.62:9092","172.29.203.106:9092","172.29.203.86:9092"})
-	admin := NewClusterAdmin([]string{"bgbiao.top:9092"})
+	admin := NewClusterAdmin([]string{"10.50.15.71:9092"})
+	// admin := NewClusterAdmin([]string{"bgbiao.top:9092"})
 	defer admin.Close()
 	// 原始的topic元数据信息
 	topicInfo, _ := admin.describeTopics([]string{"imfullpushflumelog"})
@@ -66,6 +66,24 @@ func TestDescribeTopics(t *testing.T) {
 	for _, v := range topicMetas {
 		fmt.Println(v)
 	}
+}
+
+// describe the single point topic that contain one isr
+func TestDescribeSinglePointTopics(t *testing.T) {
+	admin := NewClusterAdmin([]string{"10.50.15.71:9092"})
+	// admin := NewClusterAdmin([]string{"bgbiao.top:9092"})
+	defer admin.Close()
+
+	oneISRTopics, err := admin.DescribeSinglePointTopics([]string{"im-user-login-qa1"})
+	if err != nil {
+		panic(err)
+	}
+
+	// 存在单点的topic 分区详情
+	for _, topic := range oneISRTopics {
+		fmt.Println(topic.Name, topic.PartId, topic.PartLeader, topic.PartReplicas, topic.PartIsr)
+	}
+
 }
 
 // describe the cluster
@@ -85,7 +103,11 @@ func TestDescribeCluster(t *testing.T) {
 }
 
 func TestDecsribeClusterWithSASLPlain(t *testing.T) {
-	admin := NewClusterAdminWithSASLPlainText([]string{"172.29.202.56:9092"}, "username", "password")
+	// the kafka config with version and sasl/plaintext
+	saslPlainTextVersionConfig := SetConfigSASLPlainText(SetConfigVersion(SetBaseConfig(), "2.5.0"), "MQKafkaAdmin", "MQKafkaAdmin")
+	admin, _ := NewCustomClusterAdmin([]string{"172.29.202.56:9092"}, saslPlainTextVersionConfig)
+
+	// admin := NewClusterAdminWithSASLPlainText([]string{"172.29.202.56:9092"}, "username", "password")
 	brokers, controllerId, clusterErr := admin.DescribeCluster()
 	if clusterErr != nil {
 		fmt.Printf("err:%v\n", clusterErr)
@@ -276,26 +298,76 @@ func TestAddPartitions(t *testing.T) {
 }
 
 // 修改partition的分配
-// 发现有相关的api不生效的问题
+// 发现有相关的api不生效的问题 2.4.0 以上的版本支持
 func TestAlterPartitions(t *testing.T) {
-	admin := NewClusterAdmin([]string{"192.168.0.90:9092"})
+	// the kafka config with version
+	// versionConfig := SetConfigVersion(SetBaseConfig(), "2.5.0")
+	// admin, adminErr := NewCustomClusterAdmin([]string{"10.50.15.71:9092"}, versionConfig)
+	saslPlainTextVersionConfig := SetConfigSASLPlainText(SetConfigVersion(SetBaseConfig(), "2.5.0"), "username", "password")
+	admin, adminErr := NewCustomClusterAdmin([]string{"172.29.202.56:9092"}, saslPlainTextVersionConfig)
+	if adminErr != nil {
+		panic(adminErr)
+	}
+	//admin := NewClusterAdmin([]string{"10.50.15.71:9092"})
+
 	defer admin.Close()
 
-	var part0 []int32 = []int32{1, 2}
-	var part1 []int32 = []int32{2, 3}
-	var part2 []int32 = []int32{3, 1}
-	var part3 []int32 = []int32{3, 2}
-	var part4 []int32 = []int32{2, 1}
-	var part5 []int32 = []int32{1, 3}
+	var part0 []int32 = []int32{4, 5}
+	var part1 []int32 = []int32{1, 4}
 
 	var resagnment [][]int32
-	// 给分区0-5 进行重分配
-	// 分区6的副本没有改变，还是之前的1,3
-	resagnment = append(resagnment, part0, part1, part2, part3, part4, part5)
+
+	// 需要优先构造一个副本分配的slice，slice的索引代表分区id
+	// 因此需要注意resagnment 的长度不能超过分区数量，并且需要根据历史的分区分布来构造当前的分布
+	// 推荐在给topic级别迁移时，将整个分区的副本状态都获取到，并做校验
+	// 修改part-0,part-1的分布
+	resagnment = append(resagnment, part0, part1)
+
+	fmt.Println(resagnment)
 
 	// 版本不支持？
-	isOk, err := admin.AlterPartitionsReassignments("bgbiao-test", resagnment)
+	isOk, err := admin.AlterPartitionsReassignments("GoOps", resagnment)
 
 	fmt.Println(isOk, err)
+
+	// 获取副本迁移的状态
+	// map[string]map[int32]*PartitionReplicaReassignmentsStatus
+	// https://pkg.go.dev/github.com/Shopify/sarama#PartitionReplicaReassignmentsStatus
+	topicStatus, err := admin.ListPartitionsReassignments("GoOps", []int32{})
+	fmt.Println(topicStatus, err)
+
+}
+
+func TestClientSomeUtils(t *testing.T) {
+	saslPlainTextVersionConfig := SetConfigSASLPlainText(SetConfigVersion(SetBaseConfig(), "2.5.0"), "username", "password")
+	client, clientErr := NewClient([]string{"172.29.202.56:9092"}, saslPlainTextVersionConfig)
+	if clientErr != nil {
+		panic(clientErr)
+	}
+
+	defer client.CloseClient()
+	// *Config
+	fmt.Println(client.Client.Config())
+
+	// Broker 结构体就拥有很多具体的方法了，可以随意的操作倆
+	// *Broker
+	// https://pkg.go.dev/github.com/Shopify/sarama#Broker
+	fmt.Println(client.Client.Controller())
+	fmt.Println(client.Client.RefreshController())
+	// []*Broker
+	brokers := client.Client.Brokers()
+	for _, broker := range brokers {
+		fmt.Println(broker.Addr(), broker.ID())
+	}
+
+	// []string
+	fmt.Println(client.Client.Topics())
+
+	// get a topic partitions []int32
+	fmt.Println(client.Client.Partitions("GoOps"))
+
+	// get a  topic offlinereplicas
+	// []int32, error
+	fmt.Println(client.Client.OfflineReplicas("GoOps", int32(2)))
 
 }

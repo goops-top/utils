@@ -19,8 +19,12 @@ import (
 )
 
 type AdminApi struct {
-	Admin sarama.ClusterAdmin
+	Admin  sarama.ClusterAdmin
+	Client sarama.Client
 }
+
+// notice: the config object and NewClusterAdmin family function  could not update some filed.
+// next you should use the context package to deliver the args
 
 // init the sdk client config
 func newConfig() *sarama.Config {
@@ -75,6 +79,55 @@ func newConfigWithSASLPlainText(username, password string) *sarama.Config {
 	return config
 }
 
+func SetBaseConfig() *sarama.Config {
+	config := sarama.NewConfig()
+	config.ClientID = clientId
+	config.ChannelBufferSize = 256
+	config.Version = sarama.V2_5_0_0
+	// kafka管理接口向后兼容，因此可以适当使用老接口进行管理，否则对于不同版本的集群可能造成兼容性问题
+	// 其实也可以将版本开放出去进行兼容
+
+	// version, versionErr := sarama.ParseKafkaVersion("1.0.0")
+	version, versionErr := sarama.ParseKafkaVersion(kafkaVersion)
+	if versionErr != nil {
+		log.Fatalf("Error parsing Kafka version: %v", versionErr)
+	}
+	config.Version = version
+
+	if confErr := config.Validate(); confErr != nil {
+		fmt.Println("kafka config 解析错误，check please.")
+	}
+	return config
+}
+
+func SetConfigVersion(config *sarama.Config, version string) *sarama.Config {
+	kafkaVersion, versionErr := sarama.ParseKafkaVersion(version)
+	if versionErr != nil {
+		log.Fatalf("Error parsing Kafka version: %v", versionErr)
+		return config
+	}
+	config.Version = kafkaVersion
+	return config
+}
+
+func SetConfigSASLPlainText(config *sarama.Config, username, password string) *sarama.Config {
+	// user the sasl/plaintext to Authentication
+	config.Net.SASL.Enable = true
+	// config.Net.SASL.AuthIdentity = "SASL/PLAIN"
+	// Possible values: OAUTHBEARER, PLAIN (defaults to PLAIN)
+	// config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+	// config.Net.SASL.Handshake = false
+	config.Net.SASL.User = username
+	config.Net.SASL.Password = password
+
+	return config
+}
+
+func SetConfigClientID(config *sarama.Config, clientid string) *sarama.Config {
+	config.ClientID = clientid
+	return config
+}
+
 // init a clusteradmin api
 func NewClusterAdmin(brokerList []string) *AdminApi {
 	// no auth
@@ -104,6 +157,42 @@ func NewClusterAdminWithSASLPlainText(brokerList []string, username, password st
 	}
 
 	return &AdminApi{Admin: admin}
+}
+
+// new a custom clusteradmin with the specified config object.
+func NewCustomClusterAdmin(brokerList []string, config *sarama.Config) (*AdminApi, error) {
+	if err := config.Validate(); err != nil {
+		return nil, xerror.Wrap(err, "the broker config has some invalid filed.")
+	}
+	// https://pkg.go.dev/github.com/Shopify/sarama?tab=doc#ClusterAdmin
+	admin, adminErr := sarama.NewClusterAdmin(brokerList, config)
+	if adminErr != nil {
+		return nil, xerror.Wrap(adminErr, "failed to create a kafka admin client.")
+	}
+
+	return &AdminApi{Admin: admin}, nil
+}
+
+// new a custom client interface with the specified config object.
+// https://pkg.go.dev/github.com/Shopify/sarama#Client
+func NewClient(brokerList []string, config *sarama.Config) (*AdminApi, error) {
+	if err := config.Validate(); err != nil {
+		return nil, xerror.Wrap(err, "the broker config has some invalid filed.")
+	}
+
+	// client is a interface that contain some commonly function
+	// https://pkg.go.dev/github.com/Shopify/sarama#Client
+
+	client, clientErr := sarama.NewClient(brokerList, config)
+	if clientErr != nil {
+		return nil, xerror.Wrap(clientErr, "failed to create a kafka client interface")
+	}
+	return &AdminApi{Client: client}, nil
+}
+
+// close the clientapi
+func (adminApi *AdminApi) CloseClient() {
+	adminApi.Client.Close()
 }
 
 // Close the adminApi
@@ -245,11 +334,32 @@ func (adminApi *AdminApi) AddPartitions(topic string, count int32, assignment []
 // alter the partitions assignment for a topic
 // notice: AlterPartitionReassignmentsRequest contain a version with {TimeoutMs int32,Version int16(0)} ,maybe occur follow message:
 // kafka server: The version of API is not supported.
+// This operation is supported by brokers with version 2.4.0.0 or higher
 func (adminApi *AdminApi) AlterPartitionsReassignments(topic string, assignment [][]int32) (bool, error) {
 	if err := adminApi.Admin.AlterPartitionReassignments(topic, assignment); err != nil {
 		return false, xerror.Wrap(err, "alter the topic partitions assignment failed:")
 	}
 	return true, nil
+}
+
+// list the PartitionReassignments Status
+func (adminApi *AdminApi) ListPartitionsReassignments(topic string, partition []int32) (map[string]map[int32]*sarama.PartitionReplicaReassignmentsStatus, error) {
+	if len(partition) == 0 {
+		// 获取分区
+		topicsInfo, topicsErr := adminApi.ListTopicsInfo([]string{topic})
+		if topicsErr != nil {
+			panic(topicsErr)
+		}
+		var parts []int32
+		var i int32
+		for i = 0; i < topicsInfo[0].PartitionNum; i++ {
+			parts = append(parts, i)
+		}
+		return adminApi.Admin.ListPartitionReassignments(topic, parts)
+
+	}
+	return adminApi.Admin.ListPartitionReassignments(topic, partition)
+
 }
 
 // Delete a topic
@@ -345,6 +455,33 @@ func (adminApi *AdminApi) DescribeTopics(topiclist []string) ([]TopicInfo, error
 				PartOfflineReplicas: partinfo.OfflineReplicas,
 			}
 			topicsInfos = append(topicsInfos, *topicInfo)
+		}
+	}
+	return topicsInfos, topicMetaErr
+}
+
+// describe the single point topics that have  one ISR or one replicas
+func (adminApi *AdminApi) DescribeSinglePointTopics(topicList []string) ([]TopicInfo, error) {
+	var topicsInfos []TopicInfo
+	topicMetadataList, topicMetaErr := adminApi.Admin.DescribeTopics(topicList)
+	if topicMetaErr != nil {
+		return topicsInfos, topicMetaErr
+	}
+	for _, topicMetaData := range topicMetadataList {
+		for _, partinfo := range topicMetaData.Partitions {
+			// filter the one isr topics
+
+			if len(partinfo.Isr) == 1 || len(partinfo.Replicas) == 1 {
+				topicInfo := &TopicInfo{
+					Name:                topicMetaData.Name,
+					PartId:              partinfo.ID,
+					PartLeader:          partinfo.Leader,
+					PartReplicas:        partinfo.Replicas,
+					PartIsr:             partinfo.Isr,
+					PartOfflineReplicas: partinfo.OfflineReplicas,
+				}
+				topicsInfos = append(topicsInfos, *topicInfo)
+			}
 		}
 	}
 	return topicsInfos, topicMetaErr
