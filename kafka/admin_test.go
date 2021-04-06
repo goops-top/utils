@@ -370,4 +370,15 @@ func TestClientSomeUtils(t *testing.T) {
 	// []int32, error
 	fmt.Println(client.Client.OfflineReplicas("GoOps", int32(2)))
 
+	// get topic partition leader
+	fmt.Println(client.Client.Leader("GoOps", int32(2)))
+
+	// some usage:
+	/*
+		client.Client.GetOffset(topic,partition,offset)
+		client.Client.Replicas(topic,part)
+		client.Client.InSyncReplicas(topic,part)
+
+	*/
+
 }

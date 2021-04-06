@@ -52,7 +52,7 @@
 - [X] 增加kafka集群的版本指定
 - [X] 获取单点问题的topic分区
 - [X] 增加topic级别的副本重分配
-- [ ] 多topic的指定分区副本分配，分配限流
+- [ ] ---多topic的指定分区副本分配，分配限流--- 
 - [ ] 获取瞬时间的broker优先节点
 - - cpu指标,mem指标,in/out流量,磁盘坏块
 - - topic数量,partition数量,leader数量
