@@ -13,3 +13,5 @@ func deduplicate(s []string) []string {
 	}
 	return ret
 }
+
+// unicode2ZH can switch unicode to chinese
